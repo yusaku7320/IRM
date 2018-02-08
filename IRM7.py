@@ -333,4 +333,3 @@ if __name__ == '__main__':
 	draw(node1_list,node2_list)
 	sample = IRM(node1_list,node2_list)
 	sample.exe()
-	print("a")
