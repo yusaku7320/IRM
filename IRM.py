@@ -276,27 +276,14 @@ def rand_link(node1,node2):
 				rand = random.randint(0,1)
 				node1[i].link[str(j)] = rand
 				node2[j].link[str(i)] = rand
-def draw(node1,node2):
+def draw(model):
 		columns = []
 		index = []
 		list = []
-		columns += ["|"]
-		index += ["―"]
-		for i in node2:
-			columns += [i.id]
-		for i in node1:
-			index += [i.id]
-		for i in columns:
-			a = []
-			for j in index:
-				if j == "―":
-					a.append("―")
-				else:
-					if i == "|":
-						a.append("|")
-					else:
-						a.append(node1[j].link[str(i)])
-			list.append(a)
+		for i in model:
+			columns += [i.name]
+			index += [i.name]
+			list.append(i.link)
 		df_sample = pd.DataFrame(list).T
 		df_sample.columns = columns
 		df_sample.index = index
@@ -310,17 +297,17 @@ def traffic_threshold(link):
 		else:
 			link[i] = 0
 if __name__ == '__main__':
-	list = pd.read_csv("traffic.csv")
+	list = pd.read_csv("traffic.csv")#トラフィックリストを読み込ませる
 	node_list = []
 	print(list)
-	for i in list.values.tolist():
+	for i in list.values.tolist():#ノードリストの作成
 		name = i[0]
 		node_list.append(node(name))
-	for  id,node in enumerate(node_list):
+	for  id,node in enumerate(node_list):#ノード間のトラフィックを挿入
 		for j in list.values.tolist():
 			name = j[0]
 			traffic = j[id+1]
 			node.link[name] = traffic
 	for i in node_list:
-		traffic_threshold(i.link)
-		print(i.link)
+		traffic_threshold(i.link)#トラフィック量を0か1に変える
+	draw(node_list)#クラスタリング前のトラフィック行列を描画
