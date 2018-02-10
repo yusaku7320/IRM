@@ -103,7 +103,7 @@ class IRM:
 			count0,count1 = i.link_cheak(k)
 			new_x = self.beta(self.b1 + count1, self.b0 + count0 )
 			new_y = self.beta(self.b1, self.b0)
-			new_prob = new_prob * x/y
+			new_prob = new_prob * new_x/new_y
 		new_z = ((self.a)/(len(self.node1) -1 +self.a))
 		new_prob = new_z * new_prob
 		prob_list.append(new_prob)
