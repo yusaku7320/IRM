@@ -14,20 +14,6 @@ class cluster_class:
 
 	def __str__(self):
 		return str(self.__dict__)
-	def node_delete(self,id):
-		if id in self.node_id:
-			self.node_id.remove(id)
-	def link_cheak(self,cluster,node):
-		count_1 = 0#リンク数
-		count_0 = 0#非リンク数
-		for i in self.node_id:#クラスタlに所属しているノードj
-			for j in cluster.node_id:#クラスタkに所属しているノードi
-				x = node[i].link[str(j)] #ノードiとノードjのリンク確認
-				if x == 0:
-					count_0 += 1
-				elif x == 1:
-					count_1 += 1
-		return count_0,count_1
 class node_class:
 	def __init__(self,name):
 		self.name = name
@@ -39,17 +25,6 @@ class node_class:
 		return str(self.__dict__)
 	def belong(self,cluster):
 		self.cluster_id = cluster.id
-	def link_cheak(self,cluster):
-		count_1 = 0#リンク数
-		count_0 = 0#非リンク数
-		for i in cluster.node_id:#クラスタlに所属しているノードj
-			x = self.link[str(i)] #ノードiとノードjのリンク確認
-			if x == 0:
-				count_0 += 1
-			elif x == 1:
-				count_1 += 1
-		return count_0,count_1
-
 def draw(model):
 		columns = []
 		index = []
@@ -95,8 +70,7 @@ def traffic_threshold(link):
 			link[i] = 1
 		else:
 			link[i] = 0
-def CRP(node_list,cluster_list):
-	alpha = 1#CRPの定数
+def CRP(node_list,cluster_list,alpha):
 	for number,node in enumerate(node_list.values()):
 		if len(cluster_list) == 0:#テーブルが0のとき
 			cluster_list.append(cluster_class( len(cluster_list), node))#新規クラスタ作成
@@ -113,25 +87,47 @@ def CRP(node_list,cluster_list):
 			new_prob = float(alpha) / (alpha + number )
 			prob_list.append(new_prob)
 			prob_total += new_prob
-			p = random.uniform(0, prob_total)
-			prob_sum = 0
-			for id,prob in enumerate(prob_list):
-				prob_sum += prob
-				if p < prob_sum:
-					if id != len(prob_list)-1:
-						node.belong(cluster_list[id])
-						cluster_list[id].add_node(node)
-						break
-					else:
-						cluster_list.append(cluster_class(id,node))
-						node.belong(cluster_list[-1])
-def CRP_update(node_list,cluster_list):
+			clustering(node,cluster_list,prob_list,prob_total)
+
+
+
+def CRP_update(node_list,cluster_list,alpha,beta):
 	key_list = []
 	for key in node_list.keys():
 		key_list.append(key)
 	key = random.choice(key_list)#ノードリストからランダムにノードを選択
 	node = node_list[key]
 	cluster_delete(node,cluster_list,node_list)#ノードを所属クラスタから離脱
+	prob_list,prob_total  = exit_prob(node,cluster_list,node_list,alpha,beta)
+	new_prob = new_probability(node,cluster_list,node_list,alpha,beta)
+	prob_list.append(new_prob)
+	prob_total += new_prob
+	clustering(node,cluster_list,prob_list,prob_total)
+
+def clustering(node,cluster_list,prob_list,prob_total):
+	p = random.uniform(0, prob_total)
+	prob_sum = 0
+	for id,prob in enumerate(prob_list):
+		prob_sum += prob
+		if p < prob_sum:
+			if id != len(prob_list)-1:
+				node.belong(cluster_list[id])
+				cluster_list[id].add_node(node)
+				break
+			else:
+				cluster_list.append(cluster_class(id,node))
+				node.belong(cluster_list[-1])
+def new_probability(node,cluster_list,node_list,alpha,beta):
+	new_prob = 1
+	for cluster in cluster_list:
+		node_count0,node_count1 = node_link_cheak(node,cluster)#ノードとクラスタのリンク数のカウント
+		new_x = beta_function(beta + node_count1, beta + node_count0 )
+		new_y = beta_function(beta,beta)
+		new_prob = new_prob * new_x/new_y
+	new_z = (alpha/(len(node_list.values()) -1 + alpha))
+	new_prob = new_z * new_prob
+	return new_prob
+def exit_prob(node,cluster_list,node_list,alpha,beta):
 	prob_list = []
 	prob_total = 0
 	for cluster1 in cluster_list:
@@ -139,12 +135,20 @@ def CRP_update(node_list,cluster_list):
 		for cluster2 in cluster_list:
 			node_count0,node_count1 = node_link_cheak(node,cluster2)#ノードとクラスタのリンク数のカウント
 			cluster_count0,cluster_count1 = cluster_link_cheak(cluster1,cluster2,node_list)#クラスタとクラスタのリンク数のカウント
-
+			x = beta_function(beta + node_count1 + cluster_count1 , beta+ node_count0 + cluster_count0)
+			y = beta_function(beta + cluster_count1 , beta + cluster_count0)
+			prob = prob * (x/y)
+		z = len(cluster1.node_list)/(len(node_list.values()) -1 + alpha)
+		prob = prob* z
+		prob_list.append(prob)
+		prob_total += prob
+	return prob_list,prob_total
+def beta_function(a,b):
+	beta = math.gamma(a) * math.gamma(b) / math.gamma(a + b)#ベータ関数beta(a,b)
+	return beta
 def cluster_link_cheak(cluster1,cluster2,node_list):
 	count0 = 0
 	count1 = 0
-	print(cluster1.node_list)
-	print(cluster2.node_list)
 	for name1 in cluster1.node_list:
 		for name2 in cluster2.node_list:
 			link = node_list[name1].link_list[name2]
@@ -152,7 +156,6 @@ def cluster_link_cheak(cluster1,cluster2,node_list):
 				count0 += 1
 			elif link == 1:
 		 		count1 += 1
-	print(count0,count1)
 	return count0,count1
 def node_link_cheak(node,cluster):
 	count0 = 0
@@ -174,12 +177,36 @@ def cluster_delete(node,cluster_list,node_list):
 			cluster.id = cluster_list.index(cluster)
 			for node_id in cluster.node_list:
 				node_list[node_id].cluster_id = cluster.id#各ノードの所属クラスタのidを更新
+def after_prob(node_list,cluster_list,alpha,beta):
+	cluster_prob = cluster_probability(cluster_list,node_list,alpha)#P(S1|α)の確率
+	beta_prob = 1#総乗の計算のため1
+	for cluster1 in cluster_list:
+		for cluster2 in cluster_list:
+			cluster_count0,cluster_count1 = cluster_link_cheak(cluster1,cluster2,node_list)
+			x = beta_function(cluster_count1 + beta , cluster_count0 + beta)
+			y = beta_function(beta , beta)
+			beta_prob = beta_prob * x/y
+	prob = cluster_prob * cluster_prob * beta_prob
+	return prob
+def cluster_probability(cluster_list,node_list,alpha):
+	x=1#総乗のため1にする
+	y=1#階乗のため1にする
+	for cluster in cluster_list:
+		x = x * math.factorial(len(cluster.node_list)-1)
+	for i in range(len(node_list)):
+		y = y * (alpha + i )
+	prob = (alpha ** len(cluster_list)) * x/y
+	return prob
 if __name__ == '__main__':
 	list = pd.read_csv("traffic.csv")#トラフィックリストを読み込ませる
 	node_list = {}
 	cluster_list = []
 	result_node_list = {}
 	result_cluster_list = []
+	prob_max = 0
+	step = 3000
+	beta = 1
+	alpha = 1
 	print(list)
 	for i in list.values.tolist():#ノードリストの作成
 		name = i[0]
@@ -192,6 +219,14 @@ if __name__ == '__main__':
 	for node in node_list.values():
 		traffic_threshold(node.link_list)#トラフィック量を0か1に変える
 	draw(node_list)#クラスタリング前のトラフィック行列を描画
-	CRP(node_list,cluster_list)#事前分布
+	CRP(node_list,cluster_list,alpha)#事前分布
 	draw_cluster(cluster_list,node_list)#クラスタリング結果描画
-	CRP_update(node_list,cluster_list)
+	for i in range(step):
+		CRP_update(node_list,cluster_list,alpha,beta)
+		prob = after_prob(node_list,cluster_list,alpha,beta)#事後確率算出
+		if prob > prob_max:
+			print(prob)
+			result_node_list = deepcopy(node_list)
+			result_cluster_list = deepcopy(cluster_list)
+			prob_max = prob
+			draw_cluster(result_cluster_list,result_node_list)
