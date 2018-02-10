@@ -81,7 +81,7 @@ def draw_cluster(cluster_list,node_list):
 				if j == "-":
 					traffic.append("-")
 				else:
-					traffic.append(node_list[i].link_list[j])
+					traffic.append(node_list[j].link_list[i])
 		list.append(traffic)
 	df_sample1 = pd.DataFrame(list).T
 	df_sample1.columns = columns
@@ -125,10 +125,61 @@ def CRP(node_list,cluster_list):
 					else:
 						cluster_list.append(cluster_class(id,node))
 						node.belong(cluster_list[-1])
+def CRP_update(node_list,cluster_list):
+	key_list = []
+	for key in node_list.keys():
+		key_list.append(key)
+	key = random.choice(key_list)#ノードリストからランダムにノードを選択
+	node = node_list[key]
+	cluster_delete(node,cluster_list,node_list)#ノードを所属クラスタから離脱
+	prob_list = []
+	prob_total = 0
+	for cluster1 in cluster_list:
+		prob = 1
+		for cluster2 in cluster_list:
+			node_count0,node_count1 = node_link_cheak(node,cluster2)#ノードとクラスタのリンク数のカウント
+			cluster_count0,cluster_count1 = cluster_link_cheak(cluster1,cluster2,node_list)#クラスタとクラスタのリンク数のカウント
+
+def cluster_link_cheak(cluster1,cluster2,node_list):
+	count0 = 0
+	count1 = 0
+	print(cluster1.node_list)
+	print(cluster2.node_list)
+	for name1 in cluster1.node_list:
+		for name2 in cluster2.node_list:
+			link = node_list[name1].link_list[name2]
+			if link == 0:
+				count0 += 1
+			elif link == 1:
+		 		count1 += 1
+	print(count0,count1)
+	return count0,count1
+def node_link_cheak(node,cluster):
+	count0 = 0
+	count1 = 0
+	for name in cluster.node_list:
+		link = node.link_list[name]
+		if link == 0:
+			count0 += 1
+		elif link == 1:
+			count1 += 1
+	return count0,count1
+def cluster_delete(node,cluster_list,node_list):
+	id = node.cluster_id#ノードが所属しているクラスタのID
+	cluster_list[id].node_list.remove(node.name)#ノードを削除
+	node.cluster_id = None
+	if len(cluster_list[id].node_list) == 0: #ノード数が0になったらクラスタ削除
+		del cluster_list[id] #クラスタを削除
+		for cluster in cluster_list:#各クラスタのidを更新
+			cluster.id = cluster_list.index(cluster)
+			for node_id in cluster.node_list:
+				node_list[node_id].cluster_id = cluster.id#各ノードの所属クラスタのidを更新
 if __name__ == '__main__':
 	list = pd.read_csv("traffic.csv")#トラフィックリストを読み込ませる
 	node_list = {}
 	cluster_list = []
+	result_node_list = {}
+	result_cluster_list = []
 	print(list)
 	for i in list.values.tolist():#ノードリストの作成
 		name = i[0]
@@ -142,4 +193,5 @@ if __name__ == '__main__':
 		traffic_threshold(node.link_list)#トラフィック量を0か1に変える
 	draw(node_list)#クラスタリング前のトラフィック行列を描画
 	CRP(node_list,cluster_list)#事前分布
-	draw_cluster(cluster_list,node_list)
+	draw_cluster(cluster_list,node_list)#クラスタリング結果描画
+	CRP_update(node_list,cluster_list)
