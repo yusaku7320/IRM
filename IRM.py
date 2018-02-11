@@ -63,8 +63,7 @@ def draw_cluster(cluster_list,node_list):
 	df_sample1.index = index
 	print(df_sample1)
 	print()
-def traffic_threshold(link):
-	threshold = 0.2
+def traffic_threshold(link,threshold):
 	for i in link.keys():
 		if link[i] >= threshold:
 			link[i] = 1
@@ -197,8 +196,13 @@ def cluster_probability(cluster_list,node_list,alpha):
 		y = y * (alpha + i )
 	prob = (alpha ** len(cluster_list)) * x/y
 	return prob
+def kanto():
+	return pd.read_csv("kanto_traffic.csv")
+
+def kansai():
+	return pd.read_csv("kansai_traffic.csv")
 if __name__ == '__main__':
-	list = pd.read_csv("traffic.csv")#トラフィックリストを読み込ませる
+	list = kansai()#トラフィックリストを読み込ませる
 	node_list = {}
 	cluster_list = []
 	result_node_list = {}
@@ -206,7 +210,8 @@ if __name__ == '__main__':
 	prob_max = 0
 	step = 3000
 	beta = 1
-	alpha = 1
+	alpha = 4
+	threshold = 0.2
 	print(list)
 	for i in list.values.tolist():#ノードリストの作成
 		name = i[0]
@@ -217,7 +222,7 @@ if __name__ == '__main__':
 			traffic = j[id+1]
 			node.link_list[name] = traffic
 	for node in node_list.values():
-		traffic_threshold(node.link_list)#トラフィック量を0か1に変える
+		traffic_threshold(node.link_list,threshold)#トラフィック量を0か1に変える
 	draw(node_list)#クラスタリング前のトラフィック行列を描画
 	CRP(node_list,cluster_list,alpha)#事前分布
 	draw_cluster(cluster_list,node_list)#クラスタリング結果描画
@@ -225,8 +230,7 @@ if __name__ == '__main__':
 		CRP_update(node_list,cluster_list,alpha,beta)
 		prob = after_prob(node_list,cluster_list,alpha,beta)#事後確率算出
 		if prob > prob_max:
-			print(prob)
 			result_node_list = deepcopy(node_list)
 			result_cluster_list = deepcopy(cluster_list)
 			prob_max = prob
-			draw_cluster(result_cluster_list,result_node_list)
+	draw_cluster(result_cluster_list,result_node_list)
