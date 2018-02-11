@@ -198,11 +198,12 @@ def cluster_probability(cluster_list,node_list,alpha):
 	return prob
 def kanto():
 	return pd.read_csv("kanto_traffic.csv")
-
 def kansai():
 	return pd.read_csv("kansai_traffic.csv")
+def kanto_kansai():
+	return pd.read_csv("kanto_kansai_traffic.csv")
 if __name__ == '__main__':
-	list = kansai()#トラフィックリストを読み込ませる
+	list = kanto_kansai()#トラフィックリストを読み込ませる
 	node_list = {}
 	cluster_list = []
 	result_node_list = {}
@@ -210,8 +211,8 @@ if __name__ == '__main__':
 	prob_max = 0
 	step = 3000
 	beta = 1
-	alpha = 4
-	threshold = 0.2
+	alpha = 1
+	threshold = 0.05
 	print(list)
 	for i in list.values.tolist():#ノードリストの作成
 		name = i[0]
