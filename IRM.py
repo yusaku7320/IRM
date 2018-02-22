@@ -202,6 +202,37 @@ def kansai():
 	return pd.read_csv("kansai_traffic.csv")
 def kanto_kansai():
 	return pd.read_csv("kanto_kansai_traffic.csv")
+def draw_map(cluster_list,node_list,beta):
+	columns = []
+	index = []
+	list = []
+	for cluster in cluster_list:
+		columns += ["|"]
+		index += ["-"]
+		columns += [cluster.id]
+		index += [cluster.id]
+	for i in columns:
+		traffic = []
+		for j in index:
+			if i == "|":
+				traffic.append("|")
+			else:
+				if j == "-":
+					traffic.append("-")
+				else:
+					cluster_MAP = MAP(cluster_list[j],cluster_list[i],node_list,beta)
+					traffic.append(cluster_MAP)
+		list.append(traffic)
+	df_sample1 = pd.DataFrame(list).T
+	df_sample1.columns = columns
+	df_sample1.index = index
+	print(df_sample1)
+	print()
+def MAP(cluster1,cluster2,node_list,beta):
+	count0,count1 = cluster_link_cheak(cluster1,cluster2,node_list)
+	x = count1 + beta
+	y = count0 + count1 + 2*beta
+	return x/y
 if __name__ == '__main__':
 	list = kanto_kansai()#トラフィックリストを読み込ませる
 	node_list = {}
@@ -212,7 +243,7 @@ if __name__ == '__main__':
 	step = 3000
 	beta = 1
 	alpha = 1
-	threshold = 0.05
+	threshold = 0.07
 	print(list)
 	for i in list.values.tolist():#ノードリストの作成
 		name = i[0]
@@ -235,3 +266,6 @@ if __name__ == '__main__':
 			result_cluster_list = deepcopy(cluster_list)
 			prob_max = prob
 	draw_cluster(result_cluster_list,result_node_list)
+	draw_map(result_cluster_list,result_node_list,beta)
+	for cluster in result_cluster_list:
+		print(cluster.node_list)
