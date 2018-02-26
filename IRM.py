@@ -1,12 +1,15 @@
 # -*- coding: shift_jis -*-
-import random
+from numpy.random import *
+from numpy import *
 import math
 import pandas as pd
 from copy import deepcopy
+from gurobipy import *
 class cluster_class:
 	def __init__(self,id,node):
 		self.id = id
 		self.node_list = [node.name]
+		self.cluster_map = []
 	def add_node(self,node):
 		self.node_list.append(node.name)
 	def __repr__(self):
@@ -232,7 +235,28 @@ def MAP(cluster1,cluster2,node_list,beta):
 	count0,count1 = cluster_link_cheak(cluster1,cluster2,node_list)
 	x = count1 + beta
 	y = count0 + count1 + 2*beta
+	cluster1.cluster_map.append(x/y)
+	cluster2.cluster_map.append(x/y)
 	return x/y
+def optimization(cluster1,cluster2):
+	model = Model("map")
+
+	x,y,t = {},{},{}
+	for j in range(len(cluster2)):
+		for i in range(len(cluster1)):
+			x[i,j] = model.addVar(vtype = "B")
+	for i in range(len(cluster1)):
+		for j in range(len(cluster2)):
+			y[j,i] = model.addVar(vtype = "B")
+
+	model.update()
+
+	for i in range(len(cluster1)):
+		model.addConstr(quicksum(x[i,j] for j in range(len(cluster2))) == 1)
+	for j in range(len(cluster2)):
+		model.addConstr(quicksum(y[j,i] for i in range(len(cluster1))) == 1)
+
+	model.setObjective(quicksum)
 if __name__ == '__main__':
 	list = kanto_kansai()#トラフィックリストを読み込ませる
 	node_list = {}
@@ -240,7 +264,7 @@ if __name__ == '__main__':
 	result_node_list = {}
 	result_cluster_list = []
 	prob_max = 0
-	step = 3000
+	step = 300
 	beta = 1
 	alpha = 1
 	threshold = 0.07
@@ -265,7 +289,10 @@ if __name__ == '__main__':
 			result_node_list = deepcopy(node_list)
 			result_cluster_list = deepcopy(cluster_list)
 			prob_max = prob
+			draw_cluster(result_cluster_list,result_node_list)
 	draw_cluster(result_cluster_list,result_node_list)
 	draw_map(result_cluster_list,result_node_list,beta)
 	for cluster in result_cluster_list:
 		print(cluster.node_list)
+	for cluster in result_cluster_list:
+		print(cluster.cluster_map)
