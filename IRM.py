@@ -5,6 +5,7 @@ import math
 import pandas as pd
 from copy import deepcopy
 from gurobipy import *
+from collections import OrderedDict
 class cluster_class:
 	def __init__(self,id,node):
 		self.id = id
@@ -112,7 +113,7 @@ def clustering(node,cluster_list,prob_list,prob_total):
 	for id,prob in enumerate(prob_list):
 		prob_sum += prob
 		if p < prob_sum:
-			if id != len(prob_list)-1:
+			if id != (len(prob_list) - 1 ):
 				node.belong(cluster_list[id])
 				cluster_list[id].add_node(node)
 				break
@@ -125,8 +126,8 @@ def new_probability(node,cluster_list,node_list,alpha,beta):
 		node_count0,node_count1 = node_link_cheak(node,cluster)#ノードとクラスタのリンク数のカウント
 		new_x = beta_function(beta + node_count1, beta + node_count0 )
 		new_y = beta_function(beta,beta)
-		new_prob = new_prob * new_x/new_y
-	new_z = (alpha/(len(node_list.values()) -1 + alpha))
+		new_prob = new_prob * (new_x/new_y)
+	new_z = alpha/(len(node_list.values()) -1 + alpha)
 	new_prob = new_z * new_prob
 	return new_prob
 def exit_prob(node,cluster_list,node_list,alpha,beta):
@@ -236,11 +237,9 @@ def MAP(cluster1,cluster2,node_list,beta):
 	x = count1 + beta
 	y = count0 + count1 + 2*beta
 	cluster1.cluster_map.append(x/y)
-	cluster2.cluster_map.append(x/y)
 	return x/y
 def optimization(cluster1,cluster2):
 	model = Model("map")
-
 	x,y,t = {},{},{}
 	for j in range(len(cluster2)):
 		for i in range(len(cluster1)):
@@ -259,12 +258,13 @@ def optimization(cluster1,cluster2):
 	model.setObjective(quicksum)
 if __name__ == '__main__':
 	list = kanto_kansai()#トラフィックリストを読み込ませる
-	node_list = {}
+	#list = pd.read_csv("example2.csv")
+	node_list = OrderedDict()
 	cluster_list = []
 	result_node_list = {}
 	result_cluster_list = []
 	prob_max = 0
-	step = 300
+	step = 3000
 	beta = 1
 	alpha = 1
 	threshold = 0.07
@@ -289,7 +289,6 @@ if __name__ == '__main__':
 			result_node_list = deepcopy(node_list)
 			result_cluster_list = deepcopy(cluster_list)
 			prob_max = prob
-			draw_cluster(result_cluster_list,result_node_list)
 	draw_cluster(result_cluster_list,result_node_list)
 	draw_map(result_cluster_list,result_node_list,beta)
 	for cluster in result_cluster_list:
