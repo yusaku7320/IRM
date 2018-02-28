@@ -241,24 +241,31 @@ def MAP(cluster1,cluster2,node_list,beta):
 def optimization(cluster1,cluster2):
 	model = Model("map")
 	x,y,t = {},{},{}
-	for j in range(len(cluster2)):
-		for i in range(len(cluster1)):
+	I = len(cluster1)
+	J = len(cluster2)
+	for cluster in cluster1:
+		for id,prob in enumerate(cluster.cluster_map):
+			t[cluster.id,id] = prob
+	for j in range(J):
+		for i in range(I):
 			x[i,j] = model.addVar(vtype = "B")
-	for i in range(len(cluster1)):
-		for j in range(len(cluster2)):
+	for i in range(I):
+		for j in range(J):
 			y[j,i] = model.addVar(vtype = "B")
 
 	model.update()
 
-	for i in range(len(cluster1)):
-		model.addConstr(quicksum(x[i,j] for j in range(len(cluster2))) == 1)
-	for j in range(len(cluster2)):
-		model.addConstr(quicksum(y[j,i] for i in range(len(cluster1))) == 1)
-
-	model.setObjective(quicksum)
+	for i in range(I):
+		model.addConstr(quicksum(x[i,j] for j in range(J)) == 1)
+	for j in range(J):
+		model.addConstr(quicksum(y[j,i] for i in range(I)) == 1)
+	model.setObjective(quicksum(x[i,j]*y[i,j]*t[i,j]for i in range(I) for j in range(J)),GRB.MAXIMIZE)
+	model.optimize()
+	for j in range(J):
+		for i in range(I):
+			print(i,j,x[i,j].X)
 if __name__ == '__main__':
 	list = kanto_kansai()#トラフィックリストを読み込ませる
-	#list = pd.read_csv("example2.csv")
 	node_list = OrderedDict()
 	cluster_list = []
 	result_node_list = {}
@@ -295,3 +302,4 @@ if __name__ == '__main__':
 		print(cluster.node_list)
 	for cluster in result_cluster_list:
 		print(cluster.cluster_map)
+	optimization(result_cluster_list,result_cluster_list)
