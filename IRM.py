@@ -11,6 +11,7 @@ class cluster_class:
 		self.id = id
 		self.node_list = [node.name]
 		self.cluster_map = []
+		self.type = node.type
 	def add_node(self,node):
 		self.node_list.append(node.name)
 	def __repr__(self):
@@ -19,9 +20,10 @@ class cluster_class:
 	def __str__(self):
 		return str(self.__dict__)
 class node_class:
-	def __init__(self,name):
+	def __init__(self,name,type):
 		self.name = name
 		self.cluster_id = None
+		self.type = type
 	def __repr__(self):
 		return str(self.__dict__)
 	def __str__(self):
@@ -68,11 +70,13 @@ def draw_cluster(cluster_list_row,cluster_list_column,traffic_list):
 	df_cluster.to_csv("result.csv")
 	print()
 def traffic_threshold(link,threshold):
+	traffic_list = OrderedDict()
 	for i,j in link.keys():
 		if link[i,j] >= threshold:
-			link[i,j] = 1
+			traffic_list[i,j] = 1
 		else:
-			link[i,j] = 0
+			traffic_list[i,j] = 0
+	return traffic_list
 def CRP(traffic_list,node_list,cluster_list,alpha):
 	for number,node in enumerate(node_list.values()):
 		if len(cluster_list) == 0:#テーブルが0のとき
@@ -152,23 +156,40 @@ def beta_function(a,b):
 def cluster_link_cheak(cluster1,cluster2,node_list):
 	count0 = 0
 	count1 = 0
-	for name1 in cluster1.node_list:
-		for name2 in cluster2.node_list:
-			link = traffic_list[name1,name2]
-			if link == 0:
-				count0 += 1
-			elif link == 1:
-		 		count1 += 1
+	if cluster1.type == "row":
+		for name1 in cluster1.node_list:
+			for name2 in cluster2.node_list:
+				link = traffic_list[name1,name2]
+				if link == 0:
+					count0 += 1
+				elif link == 1:
+			 		count1 += 1
+	if cluster1.type == "column":
+		for name1 in cluster1.node_list:
+			for name2 in cluster2.node_list:
+				link = traffic_list[name2,name1]
+				if link == 0:
+					count0 += 1
+				elif link == 1:
+			 		count1 += 1
 	return count0,count1
 def node_link_cheak(node,cluster,traffic_list):
 	count0 = 0
 	count1 = 0
-	for name in cluster.node_list:
-		link = traffic_list[node.name,name]
-		if link == 0:
-			count0 += 1
-		elif link == 1:
-			count1 += 1
+	if node.type == "row":
+		for name in cluster.node_list:
+			link = traffic_list[node.name,name]
+			if link == 0:
+				count0 += 1
+			elif link == 1:
+				count1 += 1
+	if node.type == "column":
+		for name in cluster.node_list:
+			link = traffic_list[name,node.name]
+			if link == 0:
+				count0 += 1
+			elif link == 1:
+				count1 += 1
 	return count0,count1
 def cluster_delete(node,cluster_list,node_list):
 	id = node.cluster_id#ノードが所属しているクラスタのID
@@ -280,7 +301,7 @@ if __name__ == '__main__':
 	cluster_list_column = []
 	result_cluster_list_row = []
 	result_cluster_list_column = []
-	traffic_list = OrderedDict()
+	TM = OrderedDict()
 	prob_max = 0
 	step = 3000
 	beta = 1
@@ -289,14 +310,14 @@ if __name__ == '__main__':
 	assignment_list = []
 	print(list)
 	for id in list.index:#ノードリストの作成
-		node_list_row[str(id)] = (node_class(str(id)))
+		node_list_row[str(id)] = (node_class(str(id),"row"))
 	for id in list.columns:#ノードリストの作成
-		node_list_column[str(id)] = (node_class(str(id)))
+		node_list_column[str(id)] = (node_class(str(id),"column"))
 	for id1,value1 in enumerate(list.index):#ノード間のトラフィックを挿入
 		for id2,value2 in enumerate(list.columns):
 				traffic = list.iloc[id1][id2]
-				traffic_list[value1,value2] = traffic
-	traffic_threshold(traffic_list,threshold)#トラフィック量を0か1に変える
+				TM[value1,value2] = traffic
+	traffic_list = traffic_threshold(TM,threshold)#トラフィック量を0か1に変える
 	draw(traffic_list,list.columns,list.index)#クラスタリング前のトラフィック行列を描画
 	CRP(traffic_list,node_list_row,cluster_list_row,alpha)#事前分布
 	CRP(traffic_list,node_list_column,cluster_list_column,alpha)#事前分布
